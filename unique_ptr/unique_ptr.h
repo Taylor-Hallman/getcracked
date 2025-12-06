@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <memory>
 
 namespace getcracked 
 {
@@ -77,4 +78,9 @@ namespace getcracked
     private:
         T* m_Pointer = nullptr;
     };
+
+    template<typename T, typename... ArgTypes>
+    std::unique_ptr<T> make_unique(ArgTypes&&... Args) {
+      return std::unique_ptr<T>(new T(std::forward<ArgTypes>(Args)...));
+   }
 }
