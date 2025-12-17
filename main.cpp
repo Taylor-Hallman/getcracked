@@ -1,5 +1,5 @@
-#include "/shared_ptr/shared_ptr.h"
-#include "/util/Point.h"
+#include "shared_ptr/shared_ptr.h"
+#include "util/Point.h"
 
 #include <iostream>
 
