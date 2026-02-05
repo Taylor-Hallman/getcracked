@@ -1,26 +1,18 @@
-#include "shared_ptr/shared_ptr.h"
+#include "lfspscq/LockFreeQueue.h"
 #include "util/Point.h"
 
 #include <iostream>
 
 int main() {
-    getcracked::shared_ptr<Point> p(new Point(1, 2)); // Create
-    std::cout << p.get_count() << std::endl; // 1
-    {
-        getcracked::shared_ptr<Point> p2 = p;
-        std::cout << p.get_count() << std::endl; // 2
-    }
-    std::cout << p.get_count() << std::endl; // 1
-    getcracked::shared_ptr<Point> p3(std::move(p)); // Move
-    std::cout << p.get_count() << std::endl; // 0
-    std::cout << p3.get_count() << std::endl; // 1
-    p.reset(new Point(3, 4)); // Delete Create
-    p3 = p;
-    std::cout << p.get_count() << std::endl; // 2
-    std::cout << p3.get_count() << std::endl; // 2
-    getcracked::shared_ptr<Point> p4(new Point(5, 6)); // Create
-    p4 = std::move(p3); // Delete Move
-    std::cout << p.get_count() << std::endl; // 2
-    std::cout << p3.get_count() << std::endl; // 0
-    std::cout << p4.get_count() << std::endl; // 2
+    getcracked::SPSCQ<Point> q(8);
+    std::cout << q.size() << std::endl; // 0
+    Point p(1, 2);
+    Point p2;
+    q.push(p);
+    q.push(p2);
+    std::cout << q.size() << std::endl; // 2
+    Point p3;
+    q.pop(p3);
+    p3.print(); // 1, 2
+    std::cout << q.size() << std::endl; // 1
 } // Delete

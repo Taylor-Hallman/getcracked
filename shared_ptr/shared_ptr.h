@@ -102,8 +102,7 @@ namespace getcracked
         operator bool() const noexcept { return m_Ptr != nullptr; }
 
     private:
-        control_block* m_ControlBlock;
-
         T* m_Ptr = nullptr;
+        control_block* m_ControlBlock;
     };
 }

@@ -13,10 +13,10 @@ struct Point {
     Point(int x, int y) : x(x), y(y) {
         std::cout << "Create\n";
     }
-    Point(Point& other) : x(other.x), y(other.y) {
+    Point(const Point& other) : x(other.x), y(other.y) {
         std::cout << "Copy\n";
     }
-    Point& operator=(Point& other) {
+    Point& operator=(const Point& other) {
         x = other.x;
         y = other.y;
         std::cout << "Copy\n";
@@ -33,5 +33,9 @@ struct Point {
     }
     ~Point() {
         std::cout << "Delete\n";
+    }
+
+    void print() {
+        std::cout << "(" << x << ", " << y << ")\n";
     }
 };
