@@ -6,6 +6,18 @@
 
 namespace getcracked 
 {
+    struct alignas(64) CacheLineAtomic {
+        std::atomic<size_t> data;
+        
+        size_t load() const {
+            return data.load();
+        }
+
+        void store(size_t s) {
+            data.store(s);
+        }
+    };
+
     template <typename T>
     class SPSCQ
     {
@@ -75,8 +87,10 @@ namespace getcracked
         }
 
     private:
+        CacheLineAtomic m_Head;
+        CacheLineAtomic m_Tail;
+
         T* m_Buffer;
-        std::atomic<size_t> m_Head, m_Tail;
         size_t m_Capacity;
     };
 }
