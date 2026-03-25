@@ -22,11 +22,10 @@ public:
 
     ~SPSC() {
         {
-            // Signal consumer thread to stop in case no data with
-            // is_last_chunk == true is ever pushed
             std::lock_guard lk(mut);
             stop = true;
         }
+        data_cond.notify_one();
         if (consumer.joinable())
             consumer.join(); 
     }
@@ -50,13 +49,13 @@ public:
     void PushWork(const DataWrapper<T>& wrapper)
     {
         std::lock_guard lock(mut);
-        work_queue.push(std::make_shared<DataWrapper<T>>(wrapper));
+        work_queue.push(wrapper);
         data_cond.notify_one();
     }
 
 private:
     Callback callback;
-    std::queue<std::shared_ptr<DataWrapper<T>>> work_queue;
+    std::queue<DataWrapper<T>> work_queue;
     std::mutex mut;
     std::condition_variable data_cond;
     std::thread consumer;
@@ -69,11 +68,11 @@ private:
             data_cond.wait(lock, [this]{ return stop || !work_queue.empty(); });
             if (stop && work_queue.empty())
                 break;
-            std::shared_ptr<DataWrapper<T>> work = work_queue.front();
+            DataWrapper<T> work = work_queue.front();
             work_queue.pop();
             lock.unlock();
-            callback(work->data);
-            if (work->is_last_chunk)
+            callback(work.data);
+            if (work.is_last_chunk)
                 break;
         }
     }
