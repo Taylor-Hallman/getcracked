@@ -3,3 +3,6 @@
 run.exe
 run.ilk
 run.pdb
+run
+.clangd
+main.cpp

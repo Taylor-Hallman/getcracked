@@ -1,18 +1,27 @@
-#include "lfspscq/LockFreeQueue.h"
+#include "spscq/Queue.h"
 #include "util/Point.h"
 
+#include <atomic>
 #include <iostream>
+#include <thread>
 
 int main() {
-    getcracked::SPSCQ<Point> q(8);
-    std::cout << q.size() << std::endl; // 0
-    Point p(1, 2);
-    Point p2;
-    q.push(p);
-    q.push(p2);
-    std::cout << q.size() << std::endl; // 2
-    Point p3;
-    q.pop(p3);
-    p3.print(); // 1, 2
-    std::cout << q.size() << std::endl; // 1
-} // Delete
+    std::atomic<bool> called{ false };
+    auto callback = [&called](int) {
+        std::cout << "Hello!" << std::endl;
+        called.store(true, std::memory_order_relaxed);
+    };
+    {
+        SPSC<int, decltype(callback)> q(callback);
+        q.PushWork({42, false});
+        q.PushWork({0, false});
+    }
+
+    while (!called.load(std::memory_order_relaxed)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 500 });
+    }
+
+    std::cout << "We said 'Hello'!" << std::endl;
+
+    return 0;
+}

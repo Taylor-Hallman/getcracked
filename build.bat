@@ -1,1 +1,0 @@
-clang++ -g -O0 main.cpp -o run.exe
