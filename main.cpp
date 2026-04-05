@@ -1,27 +1,28 @@
-#include "spscq/Queue.h"
-#include "util/Point.h"
-
-#include <atomic>
-#include <iostream>
+#include "mutex/Mutex.h"
+#include "timer/Timer.h"
 #include <thread>
+#include <cassert>
+#include <iostream>
 
 int main() {
-    std::atomic<bool> called{ false };
-    auto callback = [&called](int) {
-        std::cout << "Hello!" << std::endl;
-        called.store(true, std::memory_order_relaxed);
-    };
-    {
-        SPSC<int, decltype(callback)> q(callback);
-        q.PushWork({42, false});
-        q.PushWork({0, false});
+    float avg = 0.0f;
+    for (int i = 0; i < 1000; i++) {
+        Timer timer;
+        Mutex mutex;
+        const auto count = 10000;
+        auto counter = 0;
+        auto worker = [&] {
+            for (int i = 0; i < count; i++) {
+                mutex.lock();
+                counter++;
+                mutex.unlock();
+            }
+        };
+        std::thread threadA(worker), threadB(worker);
+        threadA.join();
+        threadB.join();
+        avg += timer.getDuration();
     }
-
-    while (!called.load(std::memory_order_relaxed)) {
-        std::this_thread::sleep_for(std::chrono::milliseconds{ 500 });
-    }
-
-    std::cout << "We said 'Hello'!" << std::endl;
-
-    return 0;
+    avg /= 1000.0f;
+    std::cout << avg << std::endl;
 }
