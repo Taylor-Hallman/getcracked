@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-clang++ -g -O0 main.cpp -o run
+clang++ -std=c++20 -g -O0 main.cpp -o run

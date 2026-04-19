@@ -15,7 +15,7 @@ public:
 
     void unlock()
     {
-        flag.store(false, std::memory_order_acquire);
+        flag.store(false, std::memory_order_release);
     }
 private:
     std::atomic<bool> flag = false;
