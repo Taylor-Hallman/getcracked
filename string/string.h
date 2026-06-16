@@ -112,7 +112,7 @@ namespace getcracked {
             if (this == &other)
                 return *this;
             if (!is_short())
-                delete m_data.l.m_buffer_ptr;
+                operator delete(m_data.l.m_buffer_ptr);
             if (other.is_short()) {
                 m_data.s = other.m_data.s;
                 other.erase(other.begin(), other.end());
