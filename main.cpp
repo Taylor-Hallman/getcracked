@@ -1,13 +1,8 @@
-#include "3DArray/heap_array.h"
-#include <iostream>
+#include "histogram/histogram.h"
 
 int main() {
-    size_t x = 1uz, y = 2uz, z = 3uz;
-    int*** arr = GetSpace(x, y, z);
-    std::cout << "Done\n";
-    for (size_t i{}; i < x; ++i)
-        for (size_t j{}; j < y; ++j)
-            for (size_t k{}; k < z; ++k)
-                std::cout << arr[i][j][k] << ", ";
-    std::cout << "\n";
+    Histogram h(4, 8);
+    std::vector<int> latencies{ 3, 5, 7, 2, 9 };
+    Buckets b = h.Build(latencies);
+    return 0;
 }
