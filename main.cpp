@@ -1,8 +1,18 @@
-#include "histogram/histogram.h"
+#include "event_stream/event_stream.h"
+
+#include <iomanip>
+#include <iostream>
 
 int main() {
-    Histogram h(4, 8);
-    std::vector<int> latencies{ 3, 5, 7, 2, 9 };
-    Buckets b = h.Build(latencies);
-    return 0;
+    Samples samples{
+        { 2.4, { "main" } },
+            { 2.5, { "main", "foo", "bar", } },
+            { 2.6, { "main", "bar", "foo",  } },
+            { 3.0, { "main", } },
+    };
+    const auto events = GenerateEvents(samples);
+
+    for (auto& event : events) {
+        std::cout << std::fixed << std::setprecision(2) << event.Elapsed << " " << event.Method << "\n";
+    }
 }
