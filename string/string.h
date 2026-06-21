@@ -1,11 +1,6 @@
-#include <cstddef>
 #include <cstring>
-#include <initializer_list>
-#include <iterator>
+#include <algorithm>
 #include <stdexcept>
-#include <utility>
-#include <vector>
-
 namespace getcracked {
 
     struct string_long {
@@ -32,15 +27,17 @@ namespace getcracked {
         } m_data;
 
         bool is_short() const {
-            return m_data.bytes[23] & 1;
+            return m_data.bytes[23] & 0x01;
         }
 
         void set_size(size_t new_size) {
             if (is_short())
-                m_data.s.m_size = static_cast<unsigned char>((new_size << 1) | 1);
+                m_data.s.m_size = static_cast<unsigned char>((new_size << 0x01) | 0x01);
             else
                 m_data.l.m_size = new_size;
         }
+
+        static constexpr size_t growth_factor{2uz};
 
     public:
         // ---------------------------- constructors -------------------------
@@ -53,12 +50,12 @@ namespace getcracked {
         // from literal constructor
         string(const char* chars_array) {
             size_t size = strlen(chars_array);
-            if (size < 23) {
-                m_data.s = string_short{ .m_size = static_cast<unsigned char>((size << 1) | 1) }; // force low bit to 1 for small strings
+            if (size < string_short::capacity) {
+                m_data.s = string_short{ .m_size = static_cast<unsigned char>((size << 0x01) | 0x01) }; // force low bit to 1 for small strings
                 strcpy(m_data.s.m_buffer, chars_array);
             }
             else {
-                size_t capacity = size * 2;
+                size_t capacity = size & 0x01 ? size + 1 : size + 2;
                 m_data.l = string_long{
                     .m_buffer_ptr = static_cast<char*>(operator new(capacity)),
                     .m_size = size,
@@ -130,8 +127,8 @@ namespace getcracked {
         template<typename InputIt>
         string(InputIt first, InputIt last) {
             size_t len = std::distance(first, last);
-            if (len < 24) {
-                m_data.s = string_short{ .m_size = static_cast<unsigned char>((len << 1uz) | 1) };
+            if (len < string_short::capacity) {
+                m_data.s = string_short{ .m_size = static_cast<unsigned char>((len << 0x01) | 0x01) };
                 char* buf = m_data.s.m_buffer;
                 size_t i{};
                 for (auto itr = first; itr != last; ++itr, ++i) {
@@ -139,7 +136,7 @@ namespace getcracked {
                 }
                 return;
             }
-            size_t capacity = len * 2;
+            size_t capacity = len & 0x01 ? len + 1 : len + 2;
             m_data.l = string_long{ .m_buffer_ptr = static_cast<char*>(operator new(capacity)), .m_size = len, .m_capacity = capacity };
             char* buf = m_data.l.m_buffer_ptr;
             size_t i{};
@@ -151,15 +148,15 @@ namespace getcracked {
         // construct a string from an initializer list
         string(std::initializer_list<char> list) {
             size_t len = list.size();
-            if (len < 24) {
-                m_data.s = string_short{ .m_size = static_cast<unsigned char>((len << 1uz) | 1) };
+            if (len < string_short::capacity) {
+                m_data.s = string_short{ .m_size = static_cast<unsigned char>((len << 0x01) | 0x01) };
                 size_t i{};
                 for (const char& c : list) {
                     m_data.s.m_buffer[i++] = c;
                 }
                 return;
             }
-            size_t capacity = len * 2;
+            size_t capacity = len & 0x01 ? len + 1 : len + 2;
             m_data.l = string_long{ .m_buffer_ptr = static_cast<char*>(operator new(capacity)), .m_size = len, .m_capacity = capacity };
             size_t i{};
             for (const char& c : list) {
@@ -169,13 +166,13 @@ namespace getcracked {
 
         // constructs a string with count copies of the character ch
         string(size_t count, char ch) {
-            if (count < 24) {
-                m_data.s = string_short{ .m_size = static_cast<unsigned char>((count << 1uz) | 1) };
+            if (count < string_short::capacity) {
+                m_data.s = string_short{ .m_size = static_cast<unsigned char>((count << 0x01) | 0x01) };
                 for (size_t i{}; i < count; ++i)
                     m_data.s.m_buffer[i] = ch;
                 return;
             }
-            size_t capacity = count * 2;
+            size_t capacity = count & 0x01 ? count + 1 : count + 2;
             m_data.l = string_long{ .m_buffer_ptr = static_cast<char*>(operator new(capacity)), .m_size = count, .m_capacity = capacity };
             for (size_t i{}; i < count; ++i)
                 m_data.l.m_buffer_ptr[i] = ch;
@@ -190,17 +187,17 @@ namespace getcracked {
         // ---------------------- capacity functions -------------------------
         // size of the string
         size_t size() {
-            return is_short() ? m_data.s.m_size >> 1uz : m_data.l.m_size; // not sure what the point of the non-const version is?
+            return is_short() ? m_data.s.m_size >> 0x01 : m_data.l.m_size; // not sure what the point of the non-const version is?
         }
 
         // const version
         size_t size() const {
-            return is_short() ? m_data.s.m_size >> 1uz : m_data.l.m_size;
+            return is_short() ? m_data.s.m_size >> 0x01 : m_data.l.m_size;
         }
 
         // const version
         size_t capacity() const {
-            return is_short() ? 22 : m_data.l.m_capacity - 1;
+            return is_short() ? string_short::capacity - 1 : m_data.l.m_capacity - 1;
         }
 
         // checks if string is empty
@@ -210,7 +207,7 @@ namespace getcracked {
 
         // allocate new storage
         void reserve(size_t new_capacity) {
-            if ((new_capacity < 23) || (!is_short() && new_capacity <= m_data.l.m_capacity))
+            if ((new_capacity < string_short::capacity) || (!is_short() && new_capacity <= m_data.l.m_capacity))
                 return;
             new_capacity += new_capacity & 0x01 ? 1 : 2;
             char* new_buf = static_cast<char*>(operator new(new_capacity));
@@ -222,9 +219,9 @@ namespace getcracked {
             else {
                 strcpy(new_buf, m_data.l.m_buffer_ptr);
                 operator delete(m_data.l.m_buffer_ptr);
+                m_data.l.m_buffer_ptr = new_buf;
                 m_data.l.m_capacity = new_capacity;
             }
-            m_data.l.m_capacity &= size_t(~0x01);
         }
 
         // ---------------------------- Element Access ------------------------
@@ -287,7 +284,7 @@ namespace getcracked {
         void push_back(char ch) {
             size_t capacity = this->capacity(), size = this->size();
             if (size == capacity) {
-                size_t new_capacity = capacity * 2;
+                size_t new_capacity = capacity * growth_factor;
                 reserve(new_capacity);
             }
             data()[size] = ch;
@@ -311,15 +308,15 @@ namespace getcracked {
             const_iterator begin = this->begin();
             const_iterator f = &*first, l = &*last;
             iterator end = this->end();
-            std::vector<char> buf;
+            string buf;
             if (new_size > capacity()) {
                 std::less<const_iterator> lt;
                 if (lt(f, end) && lt(begin, l)) { // buffer before moving the data in case of self-referential insertion
-                    buf = std::vector<char>(first, last);
-                    f = &*buf.begin();
-                    l = &*buf.end();
+                    buf = string(first, last);
+                    f = buf.begin();
+                    l = buf.end();
                 }
-                reserve(new_size * 2);
+                reserve(new_size * growth_factor);
             }
             for (auto itr = f; itr != l; ++itr, ++pos) {
                 size_t index = std::distance(begin, pos);
