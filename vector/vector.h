@@ -1,7 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <memory>
 #include <stdexcept>
+#include <new>
+#include <type_traits>
 
+#if 0
 namespace getcracked {
     template<typename vector>
     class VectorIter {
@@ -122,3 +127,61 @@ namespace getcracked {
         }
     };
 }
+#else
+namespace getcracked {
+    template <typename Element>
+    class vector {
+    public:
+        vector() : m_data{ static_cast<Element*>(operator new(sizeof(Element))) } {}
+
+        void push_back(const Element& element) {
+            new (&m_data[m_size++]) Element(std::move(element));
+            if (m_size == m_capacity)
+                re_alloc(m_capacity * growth_factor);
+        }
+        const Element& at(std::size_t index) const {
+            if (index >= m_size)
+                throw std::out_of_range("Index out of range");
+            return m_data[index];
+        }
+        std::size_t get_size() const {
+            return m_size;
+        }
+        std::size_t get_capacity() const {
+            return m_capacity;
+        }
+        void shrink_to_fit() {
+            re_alloc(m_size);
+        }
+        void pop_back() {
+            m_data[--m_size].~Element();
+        }
+        ~vector() {
+            std::destroy(m_data, m_data + m_size);
+            operator delete(m_data);
+        }
+    private:
+        Element* m_data;
+        size_t m_size{};
+        size_t m_capacity{1uz};
+
+        void re_alloc(size_t new_capacity) {
+            if (new_capacity < m_size)
+                m_size = new_capacity;
+            Element* buf = static_cast<Element*>(operator new(sizeof(Element) * new_capacity));
+
+            if (m_data) {
+                std::uninitialized_copy(m_data, m_data + m_size, buf);
+                if constexpr (!std::is_trivially_destructible_v<Element>)
+                    std::destroy(m_data, m_data + m_size);
+            }
+
+            operator delete(m_data);
+            m_data = buf;
+            m_capacity = new_capacity;
+        }
+
+        static constexpr size_t growth_factor{3uz};
+    };
+}
+#endif
