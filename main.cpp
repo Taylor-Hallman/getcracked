@@ -1,24 +1,27 @@
-#include "latestQueue/latest_queue.h"
+#include "optional/optional.h"
 #include <cassert>
+#include <print>
+
+class Foo {
+private:
+    char mem;
+public:
+    Foo(int num) : mem(num) {}
+
+    ~Foo() {
+        std::println("Calling non-trivial destructor");
+    }
+};
+
+void fun() {
+    aux::optional<Foo> opt;
+    assert(!opt.has_value());
+    aux::optional<Foo> opt2 = Foo(5);
+    assert(opt2.has_value());
+    aux::optional<int> opt3(5);
+    std::println("{}", opt3.value());
+}
 
 int main() {
-    getcrackedQueue<Instrument> instruments;
-    instruments.write({ "GOOG", 94.5 });
-    instruments.write({ "APPL", 200 });
-    instruments.write({ "GOOG", 95 });
-    const auto size = instruments.size(); // 2
-    const auto initialRead = instruments.read(); // GOOG 95
-    const auto nextRead = instruments.read(); // APPL 200
-    const auto isEmpty = instruments.empty(); // true
-                                              
-    assert(size == 2);
-    assert(initialRead.has_value());
-    auto initialReadValue = initialRead.value();
-    assert(initialReadValue.Symbol == "GOOG");
-    assert(initialReadValue.Price == 95);
-    assert(nextRead.has_value());
-    auto nextReadValue = nextRead.value();
-    assert(nextReadValue.Symbol == "APPL");
-    assert(nextReadValue.Price == 200);
-    assert(isEmpty);
+    fun();
 }
