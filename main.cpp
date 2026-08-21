@@ -1,7 +1,5 @@
-#include "MeasureColdReadLatency/MeasureColdReadLatency.h"
-#include <iostream>
+#include "StrideScheduler/StrideScheduler.h"
 
 int main() {
-    double d = MeasureL1ColdReadLatency();
-    std::cout << d << "\n";
+
 }
